@@ -101,6 +101,10 @@ export class MockDebugService implements IDebugService {
 		throw new Error('Method not implemented.');
 	}
 
+	removeUnsupportedExceptionBreakpoints(filter?: string | undefined): Promise<void> {
+		throw new Error('Method not implemented.');
+	}
+
 	addFunctionBreakpoint(): void { }
 
 	moveWatchExpression(id: string, position: number): void { }

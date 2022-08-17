@@ -1027,7 +1027,12 @@ export class DebugService implements IDebugService {
 	}
 
 	setExceptionBreakpoints(data: DebugProtocol.ExceptionBreakpointsFilter[]): void {
-		this.model.setExceptionBreakpoints(data);
+		this.model.addExceptionBreakpoints(data);
+		this.debugStorage.storeBreakpoints(this.model);
+	}
+
+	async removeUnsupportedExceptionBreakpoints(filter?: string): Promise<void> {
+		this.model.removeUnsupportedExceptionBreakpoints(filter);
 		this.debugStorage.storeBreakpoints(this.model);
 	}
 

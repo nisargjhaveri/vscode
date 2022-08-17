@@ -45,8 +45,8 @@ import { IEditorPane } from 'vs/workbench/common/editor';
 import { IViewDescriptorService } from 'vs/workbench/common/views';
 import * as icons from 'vs/workbench/contrib/debug/browser/debugIcons';
 import { DisassemblyView } from 'vs/workbench/contrib/debug/browser/disassemblyView';
-import { BREAKPOINTS_VIEW_ID, BREAKPOINT_EDITOR_CONTRIBUTION_ID, CONTEXT_BREAKPOINTS_EXIST, CONTEXT_BREAKPOINTS_FOCUSED, CONTEXT_BREAKPOINT_INPUT_FOCUSED, CONTEXT_BREAKPOINT_ITEM_TYPE, CONTEXT_BREAKPOINT_SUPPORTS_CONDITION, CONTEXT_DEBUGGERS_AVAILABLE, CONTEXT_IN_DEBUG_MODE, DebuggerUiMessage, DEBUG_SCHEME, IBaseBreakpoint, IBreakpoint, IBreakpointEditorContribution, IDataBreakpoint, IDebugModel, IDebugService, IEnablement, IExceptionBreakpoint, IFunctionBreakpoint, IInstructionBreakpoint, State } from 'vs/workbench/contrib/debug/common/debug';
-import { Breakpoint, DataBreakpoint, ExceptionBreakpoint, FunctionBreakpoint, InstructionBreakpoint } from 'vs/workbench/contrib/debug/common/debugModel';
+import { BREAKPOINTS_VIEW_ID, BREAKPOINT_EDITOR_CONTRIBUTION_ID, CONTEXT_BREAKPOINTS_EXIST, CONTEXT_BREAKPOINTS_FOCUSED, CONTEXT_BREAKPOINT_INPUT_FOCUSED, CONTEXT_BREAKPOINT_ITEM_TYPE, CONTEXT_BREAKPOINT_SUPPORTED, CONTEXT_BREAKPOINT_SUPPORTS_CONDITION, CONTEXT_DEBUGGERS_AVAILABLE, CONTEXT_IN_DEBUG_MODE, DebuggerUiMessage, DEBUG_SCHEME, IBaseBreakpoint, IBreakpoint, IBreakpointEditorContribution, IDataBreakpoint, IDebugModel, IDebugService, IEnablement, IExceptionBreakpoint, IFunctionBreakpoint, IInstructionBreakpoint, State } from 'vs/workbench/contrib/debug/common/debug';
+import { BaseBreakpoint, Breakpoint, DataBreakpoint, ExceptionBreakpoint, FunctionBreakpoint, InstructionBreakpoint } from 'vs/workbench/contrib/debug/common/debugModel';
 import { DisassemblyViewInput } from 'vs/workbench/contrib/debug/common/disassemblyViewInput';
 import { ACTIVE_GROUP, IEditorService, SIDE_GROUP } from 'vs/workbench/services/editor/common/editorService';
 import { IHoverService } from 'vs/workbench/services/hover/browser/hover';
@@ -82,6 +82,7 @@ export class BreakpointsView extends ViewPane {
 	private ignoreLayout = false;
 	private menu: IMenu;
 	private breakpointItemType: IContextKey<string | undefined>;
+	private breakpointSupported: IContextKey<boolean>;
 	private breakpointSupportsCondition: IContextKey<boolean>;
 	private _inputBoxData: InputBoxData | undefined;
 	breakpointInputFocused: IContextKey<boolean>;
@@ -114,6 +115,7 @@ export class BreakpointsView extends ViewPane {
 		this.menu = menuService.createMenu(MenuId.DebugBreakpointsContext, contextKeyService);
 		this._register(this.menu);
 		this.breakpointItemType = CONTEXT_BREAKPOINT_ITEM_TYPE.bindTo(contextKeyService);
+		this.breakpointSupported = CONTEXT_BREAKPOINT_SUPPORTED.bindTo(contextKeyService);
 		this.breakpointSupportsCondition = CONTEXT_BREAKPOINT_SUPPORTS_CONDITION.bindTo(contextKeyService);
 		this.breakpointInputFocused = CONTEXT_BREAKPOINT_INPUT_FOCUSED.bindTo(contextKeyService);
 		this._register(this.debugService.getModel().onDidChangeBreakpoints(() => this.onBreakpointsChange()));
@@ -131,7 +133,7 @@ export class BreakpointsView extends ViewPane {
 
 		this.list = this.instantiationService.createInstance(WorkbenchList, 'Breakpoints', container, delegate, [
 			this.instantiationService.createInstance(BreakpointsRenderer, this.menu, this.breakpointSupportsCondition, this.breakpointItemType),
-			new ExceptionBreakpointsRenderer(this.menu, this.breakpointSupportsCondition, this.breakpointItemType, this.debugService),
+			new ExceptionBreakpointsRenderer(this.menu, this.breakpointSupportsCondition, this.breakpointItemType, this.breakpointSupported, this.debugService),
 			new ExceptionBreakpointInputRenderer(this, this.debugService, this.contextViewService, this.themeService),
 			this.instantiationService.createInstance(FunctionBreakpointsRenderer, this.menu, this.breakpointSupportsCondition, this.breakpointItemType),
 			this.instantiationService.createInstance(DataBreakpointsRenderer),
@@ -255,6 +257,7 @@ export class BreakpointsView extends ViewPane {
 			element instanceof FunctionBreakpoint ? 'functionBreakpoint' : element instanceof DataBreakpoint ? 'dataBreakpoint' :
 				element instanceof InstructionBreakpoint ? 'instructionBreakpoint' : undefined;
 		this.breakpointItemType.set(type);
+		this.breakpointSupported.set(element instanceof BaseBreakpoint ? element.supported : true);
 		const session = this.debugService.getViewModel().focusedSession;
 		const conditionSupported = element instanceof ExceptionBreakpoint ? element.supportsCondition : (!session || !!session.capabilities.supportsConditionalBreakpoints);
 		this.breakpointSupportsCondition.set(conditionSupported);
@@ -546,6 +549,7 @@ class ExceptionBreakpointsRenderer implements IListRenderer<IExceptionBreakpoint
 		private menu: IMenu,
 		private breakpointSupportsCondition: IContextKey<boolean>,
 		private breakpointItemType: IContextKey<string | undefined>,
+		private breakpointSupported: IContextKey<boolean>,
 		private debugService: IDebugService
 	) {
 		// noop
@@ -582,7 +586,7 @@ class ExceptionBreakpointsRenderer implements IListRenderer<IExceptionBreakpoint
 		data.context = exceptionBreakpoint;
 		data.name.textContent = exceptionBreakpoint.label || `${exceptionBreakpoint.filter} exceptions`;
 		data.breakpoint.title = exceptionBreakpoint.verified ? (exceptionBreakpoint.description || data.name.textContent) : exceptionBreakpoint.message || localize('unverifiedExceptionBreakpoint', "Unverified Exception Breakpoint");
-		data.breakpoint.classList.toggle('disabled', !exceptionBreakpoint.verified);
+		data.breakpoint.classList.toggle('disabled', !(exceptionBreakpoint.supported && exceptionBreakpoint.verified));
 		data.checkbox.checked = exceptionBreakpoint.enabled;
 		data.condition.textContent = exceptionBreakpoint.condition || '';
 		data.condition.title = localize('expressionCondition', "Expression condition: {0}", exceptionBreakpoint.condition);
@@ -590,6 +594,7 @@ class ExceptionBreakpointsRenderer implements IListRenderer<IExceptionBreakpoint
 		const primary: IAction[] = [];
 		this.breakpointSupportsCondition.set((exceptionBreakpoint as ExceptionBreakpoint).supportsCondition);
 		this.breakpointItemType.set('exceptionBreakpoint');
+		this.breakpointSupported.set(exceptionBreakpoint.supported);
 		createAndFillInActionBarActions(this.menu, { arg: exceptionBreakpoint, shouldForwardArgs: true }, { primary, secondary: [] }, 'inline');
 		data.actionBar.clear();
 		data.actionBar.push(primary, { icon: true, label: false });
@@ -1239,12 +1244,12 @@ registerAction2(class extends Action2 {
 				id: MenuId.DebugBreakpointsContext,
 				group: '3_modification',
 				order: 10,
-				when: CONTEXT_BREAKPOINT_ITEM_TYPE.notEqualsTo('exceptionBreakpoint')
+				when: ContextKeyExpr.or(CONTEXT_BREAKPOINT_ITEM_TYPE.notEqualsTo('exceptionBreakpoint'), CONTEXT_BREAKPOINT_SUPPORTED.isEqualTo(false))
 			}, {
 				id: MenuId.DebugBreakpointsContext,
 				group: 'inline',
 				order: 20,
-				when: CONTEXT_BREAKPOINT_ITEM_TYPE.notEqualsTo('exceptionBreakpoint')
+				when: ContextKeyExpr.or(CONTEXT_BREAKPOINT_ITEM_TYPE.notEqualsTo('exceptionBreakpoint'), CONTEXT_BREAKPOINT_SUPPORTED.isEqualTo(false))
 			}]
 		});
 	}
@@ -1259,6 +1264,8 @@ registerAction2(class extends Action2 {
 			await debugService.removeDataBreakpoints(breakpoint.getId());
 		} else if (breakpoint instanceof InstructionBreakpoint) {
 			await debugService.removeInstructionBreakpoints(breakpoint.instructionReference);
+		} else if (breakpoint instanceof ExceptionBreakpoint) {
+			await debugService.removeUnsupportedExceptionBreakpoints(breakpoint.filter);
 		}
 	}
 });
@@ -1283,7 +1290,7 @@ registerAction2(class extends Action2 {
 				id: MenuId.DebugBreakpointsContext,
 				group: '3_modification',
 				order: 20,
-				when: ContextKeyExpr.and(CONTEXT_BREAKPOINTS_EXIST, CONTEXT_BREAKPOINT_ITEM_TYPE.notEqualsTo('exceptionBreakpoint'))
+				when: ContextKeyExpr.and(CONTEXT_BREAKPOINTS_EXIST, ContextKeyExpr.or(CONTEXT_BREAKPOINT_ITEM_TYPE.notEqualsTo('exceptionBreakpoint'), CONTEXT_BREAKPOINT_SUPPORTED.isEqualTo(false)))
 			}, {
 				id: MenuId.MenubarDebugMenu,
 				group: '5_breakpoints',
@@ -1299,6 +1306,7 @@ registerAction2(class extends Action2 {
 		debugService.removeFunctionBreakpoints();
 		debugService.removeDataBreakpoints();
 		debugService.removeInstructionBreakpoints();
+		debugService.removeUnsupportedExceptionBreakpoints();
 	}
 });
 

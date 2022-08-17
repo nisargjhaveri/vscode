@@ -212,14 +212,14 @@ suite('Debug - Breakpoints', () => {
 	test('exception breakpoints', () => {
 		let eventCount = 0;
 		model.onDidChangeBreakpoints(() => eventCount++);
-		model.setExceptionBreakpoints([{ filter: 'uncaught', label: 'UNCAUGHT', default: true }]);
+		model.addExceptionBreakpoints([{ filter: 'uncaught', label: 'UNCAUGHT', default: true }]);
 		assert.strictEqual(eventCount, 1);
 		let exceptionBreakpoints = model.getExceptionBreakpoints();
 		assert.strictEqual(exceptionBreakpoints.length, 1);
 		assert.strictEqual(exceptionBreakpoints[0].filter, 'uncaught');
 		assert.strictEqual(exceptionBreakpoints[0].enabled, true);
 
-		model.setExceptionBreakpoints([{ filter: 'uncaught', label: 'UNCAUGHT' }, { filter: 'caught', label: 'CAUGHT' }]);
+		model.addExceptionBreakpoints([{ filter: 'uncaught', label: 'UNCAUGHT' }, { filter: 'caught', label: 'CAUGHT' }]);
 		assert.strictEqual(eventCount, 2);
 		exceptionBreakpoints = model.getExceptionBreakpoints();
 		assert.strictEqual(exceptionBreakpoints.length, 2);
@@ -228,6 +228,26 @@ suite('Debug - Breakpoints', () => {
 		assert.strictEqual(exceptionBreakpoints[1].filter, 'caught');
 		assert.strictEqual(exceptionBreakpoints[1].label, 'CAUGHT');
 		assert.strictEqual(exceptionBreakpoints[1].enabled, false);
+
+		model.addExceptionBreakpoints([{ filter: 'throw', label: 'THROW' }]);
+		assert.strictEqual(eventCount, 3);
+		exceptionBreakpoints = model.getExceptionBreakpoints();
+		assert.strictEqual(exceptionBreakpoints.length, 3);
+		assert.strictEqual(exceptionBreakpoints[0].filter, 'uncaught');
+		assert.strictEqual(exceptionBreakpoints[0].enabled, true);
+		assert.strictEqual(exceptionBreakpoints[1].filter, 'caught');
+		assert.strictEqual(exceptionBreakpoints[1].label, 'CAUGHT');
+		assert.strictEqual(exceptionBreakpoints[1].enabled, false);
+		assert.strictEqual(exceptionBreakpoints[2].filter, 'throw');
+		assert.strictEqual(exceptionBreakpoints[2].enabled, false);
+
+		model.removeUnsupportedExceptionBreakpoints('uncaught');
+		assert.strictEqual(eventCount, 4);
+		assert.strictEqual(model.getExceptionBreakpoints().length, 2);
+
+		model.removeUnsupportedExceptionBreakpoints();
+		assert.strictEqual(eventCount, 5);
+		assert.strictEqual(model.getExceptionBreakpoints().length, 0);
 	});
 
 	test('instruction breakpoints', () => {

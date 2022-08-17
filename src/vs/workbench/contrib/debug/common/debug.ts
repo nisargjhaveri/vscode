@@ -60,6 +60,7 @@ export const CONTEXT_CALLSTACK_SESSION_HAS_ONE_THREAD = new RawContextKey<boolea
 export const CONTEXT_WATCH_ITEM_TYPE = new RawContextKey<string>('watchItemType', undefined, { type: 'string', description: nls.localize('watchItemType', "Represents the item type of the focused element in the WATCH view. For example: 'expression', 'variable'") });
 export const CONTEXT_CAN_VIEW_MEMORY = new RawContextKey<boolean>('canViewMemory', undefined, { type: 'boolean', description: nls.localize('canViewMemory', "Indicates whether the item in the view has an associated memory refrence.") });
 export const CONTEXT_BREAKPOINT_ITEM_TYPE = new RawContextKey<string>('breakpointItemType', undefined, { type: 'string', description: nls.localize('breakpointItemType', "Represents the item type of the focused element in the BREAKPOINTS view. For example: 'breakpoint', 'exceptionBreakppint', 'functionBreakpoint', 'dataBreakpoint'") });
+export const CONTEXT_BREAKPOINT_SUPPORTED = new RawContextKey<boolean>('breakpointSupported', undefined, { type: 'boolean', description: nls.localize('breakpointSupported', "True when the focused breakpoint is supported by the current debug sessions") });
 export const CONTEXT_BREAKPOINT_ACCESS_TYPE = new RawContextKey<string>('breakpointAccessType', undefined, { type: 'string', description: nls.localize('breakpointAccessType', "Represents the access type of the focused data breakpoint in the BREAKPOINTS view. For example: 'read', 'readWrite', 'write'") });
 export const CONTEXT_BREAKPOINT_SUPPORTS_CONDITION = new RawContextKey<boolean>('breakpointSupportsCondition', false, { type: 'boolean', description: nls.localize('breakpointSupportsCondition', "True when the focused breakpoint supports conditions.") });
 export const CONTEXT_LOADED_SCRIPTS_SUPPORTED = new RawContextKey<boolean>('loadedScriptsSupported', false, { type: 'boolean', description: nls.localize('loadedScriptsSupported', "True when the focused sessions supports the LOADED SCRIPTS view") });
@@ -1056,6 +1057,12 @@ export interface IDebugService {
 	setExceptionBreakpointCondition(breakpoint: IExceptionBreakpoint, condition: string | undefined): Promise<void>;
 
 	setExceptionBreakpoints(data: DebugProtocol.ExceptionBreakpointsFilter[]): void;
+
+	/**
+	 * Removes all currently unsupported exception breakpoints. If filter is passed only removes the exception breakpoint with the passed filter.
+	 * The filter should be the filter string supplied by the debugger in the "capabilites.exceptionBreakpointFilters".
+	 */
+	removeUnsupportedExceptionBreakpoints(filter?: string): Promise<void>;
 
 	/**
 	 * Sends all breakpoints to the passed session.
