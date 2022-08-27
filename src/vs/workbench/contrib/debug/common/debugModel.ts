@@ -1145,7 +1145,7 @@ export class DebugModel implements IDebugModel {
 	private readonly _onDidChangeWatchExpressions = new Emitter<IExpression | undefined>();
 	private breakpoints: Breakpoint[];
 	private functionBreakpoints: FunctionBreakpoint[];
-	private exceptionBreakpoints: ExceptionBreakpoint[];
+	private exceptionBreakpoints: ReadonlyArray<IExceptionBreakpoint>;
 	private dataBreakpoints: DataBreakpoint[];
 	private watchExpressions: Expression[];
 	private instructionBreakpoints: InstructionBreakpoint[];
@@ -1336,7 +1336,7 @@ export class DebugModel implements IDebugModel {
 		return this.dataBreakpoints;
 	}
 
-	getExceptionBreakpoints(): IExceptionBreakpoint[] {
+	getExceptionBreakpoints(): ReadonlyArray<IExceptionBreakpoint> {
 		return this.exceptionBreakpoints;
 	}
 
@@ -1344,20 +1344,20 @@ export class DebugModel implements IDebugModel {
 		return this.instructionBreakpoints;
 	}
 
-	setExceptionBreakpoints(data: DebugProtocol.ExceptionBreakpointsFilter[]): void {
+	createExceptionBreakpoints(data: DebugProtocol.ExceptionBreakpointsFilter[]): ExceptionBreakpoint[] {
 		if (data) {
-			if (this.exceptionBreakpoints.length === data.length && this.exceptionBreakpoints.every((exbp, i) =>
-				exbp.filter === data[i].filter && exbp.label === data[i].label && exbp.supportsCondition === data[i].supportsCondition && exbp.conditionDescription === data[i].conditionDescription && exbp.description === data[i].description)) {
-				// No change
-				return;
-			}
-
-			this.exceptionBreakpoints = data.map(d => {
+			return data.map(d => {
 				const ebp = this.exceptionBreakpoints.filter(ebp => ebp.filter === d.filter).pop();
 				return new ExceptionBreakpoint(d.filter, d.label, ebp ? ebp.enabled : !!d.default, !!d.supportsCondition, ebp?.condition, d.description, d.conditionDescription);
 			});
-			this._onDidChangeBreakpoints.fire(undefined);
 		}
+
+		return [];
+	}
+
+	setExceptionBreakpoints(exceptionBreakpoints: readonly IExceptionBreakpoint[]) {
+		this.exceptionBreakpoints = exceptionBreakpoints;
+		this._onDidChangeBreakpoints.fire(undefined);
 	}
 
 	setExceptionBreakpointCondition(exceptionBreakpoint: IExceptionBreakpoint, condition: string | undefined): void {
@@ -1436,7 +1436,8 @@ export class DebugModel implements IDebugModel {
 				}
 			}
 		});
-		this.exceptionBreakpoints.forEach(ebp => {
+		this.exceptionBreakpoints.forEach(iebp => {
+			const ebp = iebp as ExceptionBreakpoint;
 			if (!data) {
 				ebp.setSessionData(sessionId, undefined);
 			} else {

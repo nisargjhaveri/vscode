@@ -212,14 +212,14 @@ suite('Debug - Breakpoints', () => {
 	test('exception breakpoints', () => {
 		let eventCount = 0;
 		model.onDidChangeBreakpoints(() => eventCount++);
-		model.setExceptionBreakpoints([{ filter: 'uncaught', label: 'UNCAUGHT', default: true }]);
+		model.setExceptionBreakpoints(model.createExceptionBreakpoints([{ filter: 'uncaught', label: 'UNCAUGHT', default: true }]));
 		assert.strictEqual(eventCount, 1);
 		let exceptionBreakpoints = model.getExceptionBreakpoints();
 		assert.strictEqual(exceptionBreakpoints.length, 1);
 		assert.strictEqual(exceptionBreakpoints[0].filter, 'uncaught');
 		assert.strictEqual(exceptionBreakpoints[0].enabled, true);
 
-		model.setExceptionBreakpoints([{ filter: 'uncaught', label: 'UNCAUGHT' }, { filter: 'caught', label: 'CAUGHT' }]);
+		model.setExceptionBreakpoints(model.createExceptionBreakpoints([{ filter: 'uncaught', label: 'UNCAUGHT' }, { filter: 'caught', label: 'CAUGHT' }]));
 		assert.strictEqual(eventCount, 2);
 		exceptionBreakpoints = model.getExceptionBreakpoints();
 		assert.strictEqual(exceptionBreakpoints.length, 2);

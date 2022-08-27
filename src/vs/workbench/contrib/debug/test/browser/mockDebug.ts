@@ -97,7 +97,7 @@ export class MockDebugService implements IDebugService {
 		throw new Error('Method not implemented.');
 	}
 
-	setExceptionBreakpoints(data: DebugProtocol.ExceptionBreakpointsFilter[]): void {
+	createExceptionBreakpoints(data: DebugProtocol.ExceptionBreakpointsFilter[]): IExceptionBreakpoint[] {
 		throw new Error('Method not implemented.');
 	}
 
@@ -196,6 +196,10 @@ export class MockSession implements IDebugSession {
 
 	get isSimpleUI(): boolean {
 		return false;
+	}
+
+	getExceptionBreakpoints(): readonly IExceptionBreakpoint[] {
+		throw new Error('Method not implemented.');
 	}
 
 	stepInTargets(frameId: number): Promise<{ id: number; label: string }[]> {

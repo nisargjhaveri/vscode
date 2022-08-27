@@ -166,6 +166,7 @@ export class DebugService implements IDebugService {
 		}));
 		this.disposables.add(this.viewModel.onDidFocusSession(() => {
 			this.onStateChange();
+			this.updateExceptionBreakpoints();
 		}));
 		this.disposables.add(Event.any(this.adapterManager.onDidRegisterDebugger, this.configurationManager.onDidSelectConfiguration)(() => {
 			const debugUxValue = (this.state !== State.Inactive || (this.configurationManager.getAllConfigurations().length > 0 && this.adapterManager.hasEnabledDebuggers())) ? 'default' : 'simple';
@@ -1026,9 +1027,16 @@ export class DebugService implements IDebugService {
 		await this.sendInstructionBreakpoints();
 	}
 
-	setExceptionBreakpoints(data: DebugProtocol.ExceptionBreakpointsFilter[]): void {
-		this.model.setExceptionBreakpoints(data);
-		this.debugStorage.storeBreakpoints(this.model);
+	updateExceptionBreakpoints(): void {
+		const session = this.viewModel.focusedSession;
+		if (session) {
+			this.model.setExceptionBreakpoints(this.viewModel.focusedSession?.getExceptionBreakpoints() || []);
+			this.debugStorage.storeBreakpoints(this.model);
+		}
+	}
+
+	createExceptionBreakpoints(data: DebugProtocol.ExceptionBreakpointsFilter[]): IExceptionBreakpoint[] {
+		return this.model.createExceptionBreakpoints(data);
 	}
 
 	async setExceptionBreakpointCondition(exceptionBreakpoint: IExceptionBreakpoint, condition: string | undefined): Promise<void> {
@@ -1086,9 +1094,8 @@ export class DebugService implements IDebugService {
 	}
 
 	private sendExceptionBreakpoints(session?: IDebugSession): Promise<void> {
-		const enabledExceptionBps = this.model.getExceptionBreakpoints().filter(exb => exb.enabled);
-
 		return sendToOneOrAllSessions(this.model, session, async s => {
+			const enabledExceptionBps = s.getExceptionBreakpoints().filter(ebp => ebp.enabled);
 			if (s.capabilities.supportsConfigurationDoneRequest && (!s.capabilities.exceptionBreakpointFilters || s.capabilities.exceptionBreakpointFilters.length === 0)) {
 				// Only call `setExceptionBreakpoints` as specified in dap protocol #90001
 				return;

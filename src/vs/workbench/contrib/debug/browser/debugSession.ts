@@ -56,6 +56,7 @@ export class DebugSession implements IDebugSession {
 	private lastContinuedThreadId: number | undefined;
 	private repl: ReplModel;
 	private stoppedDetails: IRawStoppedDetails[] = [];
+	private exceptionBreakpoints: IExceptionBreakpoint[] = [];
 
 	private readonly _onDidChangeState = new Emitter<void>();
 	private readonly _onDidEndAdapter = new Emitter<AdapterEndEvent | undefined>();
@@ -222,6 +223,10 @@ export class DebugSession implements IDebugSession {
 		return this.raw ? this.raw.capabilities : Object.create(null);
 	}
 
+	getExceptionBreakpoints(): readonly IExceptionBreakpoint[] {
+		return this.exceptionBreakpoints;
+	}
+
 	//---- events
 	get onDidChangeState(): Event<void> {
 		return this._onDidChangeState.event;
@@ -302,7 +307,7 @@ export class DebugSession implements IDebugSession {
 
 			this.initialized = true;
 			this._onDidChangeState.fire();
-			this.debugService.setExceptionBreakpoints((this.raw && this.raw.capabilities.exceptionBreakpointFilters) || []);
+			this.exceptionBreakpoints = this.debugService.createExceptionBreakpoints((this.raw && this.raw.capabilities.exceptionBreakpointFilters) || []);
 		} catch (err) {
 			this.initialized = true;
 			this._onDidChangeState.fire();
@@ -1122,7 +1127,7 @@ export class DebugSession implements IDebugSession {
 			const breakpoint = this.model.getBreakpoints().find(bp => bp.getIdFromAdapter(this.getId()) === id);
 			const functionBreakpoint = this.model.getFunctionBreakpoints().find(bp => bp.getIdFromAdapter(this.getId()) === id);
 			const dataBreakpoint = this.model.getDataBreakpoints().find(dbp => dbp.getIdFromAdapter(this.getId()) === id);
-			const exceptionBreakpoint = this.model.getExceptionBreakpoints().find(excbp => excbp.getIdFromAdapter(this.getId()) === id);
+			const exceptionBreakpoint = this.getExceptionBreakpoints().find(excbp => excbp.getIdFromAdapter(this.getId()) === id);
 
 			if (event.body.reason === 'new' && event.body.breakpoint.source && event.body.breakpoint.line) {
 				const source = this.getSource(event.body.breakpoint.source);

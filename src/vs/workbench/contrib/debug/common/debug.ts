@@ -316,6 +316,8 @@ export interface IDebugSession extends ITreeElement {
 	setConfiguration(configuration: { resolved: IConfig; unresolved: IConfig | undefined }): void;
 	rawUpdate(data: IRawModelUpdate): void;
 
+	getExceptionBreakpoints(): ReadonlyArray<IExceptionBreakpoint>;
+
 	getThread(threadId: number): IThread | undefined;
 	getAllThreads(): IThread[];
 	clearThreads(removeThreads: boolean, reference?: number): void;
@@ -1055,7 +1057,7 @@ export interface IDebugService {
 
 	setExceptionBreakpointCondition(breakpoint: IExceptionBreakpoint, condition: string | undefined): Promise<void>;
 
-	setExceptionBreakpoints(data: DebugProtocol.ExceptionBreakpointsFilter[]): void;
+	createExceptionBreakpoints(data: DebugProtocol.ExceptionBreakpointsFilter[]): IExceptionBreakpoint[];
 
 	/**
 	 * Sends all breakpoints to the passed session.
