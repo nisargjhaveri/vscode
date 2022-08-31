@@ -1027,7 +1027,7 @@ export class DebugService implements IDebugService {
 		await this.sendInstructionBreakpoints();
 	}
 
-	updateExceptionBreakpoints(): void {
+	private updateExceptionBreakpoints(): void {
 		const session = this.viewModel.focusedSession;
 		if (session) {
 			this.model.setExceptionBreakpoints(this.viewModel.focusedSession?.getExceptionBreakpoints() || []);
